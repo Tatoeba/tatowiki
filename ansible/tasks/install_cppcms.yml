@@ -21,7 +21,7 @@
   command: cmake . chdir=/tmp/cppcms-1.0.5
 
 - name: Compile
-  command: make chdir=/tmp/cppcms-1.0.5
+  command: make -j2 chdir=/tmp/cppcms-1.0.5
 
 - name: Install
   command: make install chdir=/tmp/cppcms-1.0.5

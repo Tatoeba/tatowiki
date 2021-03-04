@@ -55,7 +55,7 @@
     strip: 1
 
 - name: Compile
-  command: make chdir=/tmp/tatowiki/app/build
+  command: make -j2 chdir=/tmp/tatowiki/app/build
 
 - name: Install tatowiki binary
   copy:

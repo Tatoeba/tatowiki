@@ -7,7 +7,7 @@
   command: cmake . chdir=/tmp/cppcmsskel
 
 - name: Compile
-  command: make chdir=/tmp/cppcmsskel
+  command: make -j2 chdir=/tmp/cppcmsskel
 
 - name: Install
   command: make install chdir=/tmp/cppcmsskel
