@@ -1,0 +1,12 @@
+[Unit]
+Description="Tatowiki"
+
+[Service]
+User=tatowiki
+Group=tatowiki
+WorkingDirectory={{tatowiki_basedir}}/www
+ExecStart={{tatowiki_basedir}}/www/tatowiki -c {{tatowiki_basedir}}/www/config.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

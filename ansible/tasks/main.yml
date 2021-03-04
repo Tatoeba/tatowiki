@@ -1,0 +1,20 @@
+---
+
+- name: Check if tatowiki is already present
+  file:
+    path: "{{tatowiki_basedir}}/www/tatowiki"
+    state: file
+  register: install_state
+  ignore_errors: yes
+
+- name: Installation skip message
+  debug: msg="tatowiki already installed and force_install == false; skipping installation"
+  when: install_state is success and force_install == false
+
+- name: Force install message
+  debug: msg="tatodetect already installed; reinstalling it (force_intall == true)"
+  when: install_state is success and force_install == true
+
+- include: install_tatowiki.yml
+  when: install_state is failed or force_install == true
+

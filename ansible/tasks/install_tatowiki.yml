@@ -1,0 +1,151 @@
+---
+
+- name: Check if cppcms is installed
+  shell: which cppcms_run
+  register: cppcms_installed
+  ignore_errors: yes
+
+- include: install_cppcms.yml
+  when: cppcms_installed is failed
+
+- name: Check if cppcmsskel is installed
+  shell: which create_new_cppcmsskel
+  register: cppcmsskel_installed
+  ignore_errors: yes
+
+- include: install_cppcmsskel.yml
+  when: cppcmsskel_installed is failed
+
+- name: Install other dependencies for tatowiki
+  apt:
+    name: ['make', 'cmake', 'python3', 'clang', 'sqlite3',
+           'libsqlite3-dev', 'libcppdb-dev', 'libcppdb-sqlite3-0', 'libmarkdown2-dev']
+    state: present
+
+- name: Remove any existing installation of tatowiki
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+  - "{{tatowiki_basedir}}"
+  - /tmp/tatowiki
+
+- name: Fetch tatowiki source
+  git:
+    repo: https://github.com/Tatoeba/tatowiki
+    dest: /tmp/tatowiki
+
+- name: Create tatowiki directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+  - /tmp/tatowiki/app/build
+  - "{{tatowiki_basedir}}"
+  - "{{tatowiki_basedir}}/www"
+  - "{{tatowiki_basedir}}/log"
+
+- name: Generate makefile
+  command: cmake .. chdir=/tmp/tatowiki/app/build
+
+- name: Apply patch to hide registration
+  patch:
+    basedir: /tmp/tatowiki/
+    src: hide-registration.patch
+    strip: 1
+
+- name: Compile
+  command: make chdir=/tmp/tatowiki/app/build
+
+- name: Install tatowiki binary
+  copy:
+    remote_src: yes
+    src: /tmp/tatowiki/app/build/tatowiki
+    dest: "{{tatowiki_basedir}}/www"
+    mode: 0755
+
+- name: Install tatowiki resources
+  copy:
+    remote_src: yes
+    src: /tmp/tatowiki/app/resources
+    dest: "{{tatowiki_resources_dir | dirname}}"
+
+- name: Create user tatowiki
+  user:
+    name: tatowiki
+    system: yes
+
+- name: Create upload directory
+  file:
+    path: "{{tatowiki_upload_dir}}"
+    state: directory
+    mode: 0775
+    owner: root
+    group: tatowiki
+
+- name: Create database directory
+  file:
+    path: "{{tatowiki_sqlite_file | dirname}}"
+    state: directory
+    mode: 0750
+    owner: tatowiki
+    group: www-data
+
+- name: Create database file
+  file:
+    path: "{{tatowiki_sqlite_file}}"
+    state: touch
+    mode: 0640
+    owner: tatowiki
+    group: www-data
+
+- name: Initialize database
+  command: sqlite3 "{{tatowiki_sqlite_file}}" ".read /tmp/tatowiki/app/sql/sqlite3.sql"
+
+- name: Install config file
+  template:
+    src: config.js.j2
+    dest: "{{tatowiki_basedir}}/www/config.js"
+    mode: 0640
+    owner: root
+    group: tatowiki
+
+- name: Install service file
+  template:
+    src: tatowiki.service.j2
+    dest: /etc/systemd/system/tatowiki.service
+    mode: 0644
+  register: service_file
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+  when: service_file is changed
+
+- name: Start and enable tatowiki
+  systemd:
+    name: tatowiki
+    state: started
+    enabled: yes
+
+- name: Install tatowiki vhost
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/wiki
+
+- name: Enable tatowiki vhost
+  file:
+    state: link
+    force: yes
+    src: /etc/nginx/sites-available/wiki
+    dest: /etc/nginx/sites-enabled/wiki
+
+- name: Reload nginx
+  service:
+    name: nginx
+    state: reloaded
+
+- name: Remove temporary files
+  file:
+    path: /tmp/tatowiki
+    state: absent
