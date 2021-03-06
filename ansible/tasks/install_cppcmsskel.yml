@@ -1,4 +1,8 @@
 ---
+- name: Install dependencies for cppcmsskel
+  apt:
+    name: ['libsqlite3-dev', 'libcppdb-dev', 'libcppdb-sqlite3-0']
+    state: present
 
 - name: Fetch cppcmsskel source
   git: repo=https://github.com/allan-simon/cppcms-skeleton dest=/tmp/cppcmsskel
