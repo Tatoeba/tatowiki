@@ -5,7 +5,7 @@
   register: cppcms_installed
   ignore_errors: yes
 
-- include: install_cppcms.yml
+- include_tasks: install_cppcms.yml
   when: cppcms_installed is failed
 
 - name: Check if cppcmsskel is installed
@@ -13,7 +13,7 @@
   register: cppcmsskel_installed
   ignore_errors: yes
 
-- include: install_cppcmsskel.yml
+- include_tasks: install_cppcmsskel.yml
   when: cppcmsskel_installed is failed
 
 - name: Install other dependencies for tatowiki
