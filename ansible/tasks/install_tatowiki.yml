@@ -45,6 +45,11 @@
   - "{{tatowiki_basedir}}/www"
   - "{{tatowiki_basedir}}/log"
 
+- name: Temporarily install dev dependency python-is-python3 package
+  apt:
+    name: python-is-python3
+    state: present
+
 - name: Generate makefile
   command: cmake .. chdir=/tmp/tatowiki/app/build
 
@@ -69,6 +74,11 @@
     remote_src: yes
     src: /tmp/tatowiki/app/resources
     dest: "{{tatowiki_resources_dir | dirname}}"
+
+- name: Uninstall dev dependency python-is-python3 package
+  apt:
+    name: python-is-python3
+    state: absent
 
 - name: Create user tatowiki
   user:
