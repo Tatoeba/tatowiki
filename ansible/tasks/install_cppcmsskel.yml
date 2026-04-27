@@ -1,11 +1,21 @@
 ---
 - name: Install dependencies for cppcmsskel
   apt:
-    name: ['libsqlite3-dev', 'libcppdb-dev', 'libcppdb-sqlite3-0']
+    name: ['libsqlite3-0', 'libcppdb0', 'libcppdb-sqlite3-0']
     state: present
 
 - name: Fetch cppcmsskel source
   git: repo=https://github.com/allan-simon/cppcms-skeleton dest=/tmp/cppcmsskel
+
+- name: Save packages selection
+  shell: dpkg --get-selections > /tmp/cppcmsskel/all_selections
+  args:
+    creates: /tmp/cppcmsskel/all_selections
+
+- name: Install build dependencies for cppcmsskel
+  apt:
+    name: ['make', 'cmake', 'g++', 'libsqlite3-dev', 'libcppdb-dev']
+    state: present
 
 - name: Generate makefile
   command: cmake . chdir=/tmp/cppcmsskel
@@ -15,6 +25,9 @@
 
 - name: Install
   command: make install chdir=/tmp/cppcmsskel
+
+- name: Uninstall build dependencies
+  shell: dpkg --clear-selections && dpkg --set-selections < /tmp/cppcmsskel/all_selections && apt-get -y dselect-upgrade
 
 - name: Remove temporary files
   file:

@@ -16,12 +16,6 @@
 - include_tasks: install_cppcmsskel.yml
   when: cppcmsskel_installed is failed
 
-- name: Install other dependencies for tatowiki
-  apt:
-    name: ['make', 'cmake', 'python3', 'clang', 'sqlite3',
-           'libsqlite3-dev', 'libcppdb-dev', 'libcppdb-sqlite3-0', 'libmarkdown2-dev']
-    state: present
-
 - name: Remove any existing installation of tatowiki
   file:
     path: "{{ item }}"
@@ -30,10 +24,26 @@
   - "{{tatowiki_basedir}}"
   - /tmp/tatowiki
 
+- name: Install dependencies for tatowiki
+  apt:
+    name: ['sqlite3', 'libcppdb0', 'libcppdb-sqlite3-0', 'libmarkdown2']
+    state: present
+
 - name: Fetch tatowiki source
   git:
     repo: https://github.com/Tatoeba/tatowiki
     dest: /tmp/tatowiki
+
+- name: Save packages selection
+  shell: dpkg --get-selections > /tmp/tatowiki/all_selections
+  args:
+    creates: /tmp/tatowiki/all_selections
+
+- name: Install build dependencies for tatowiki
+  apt:
+    name: ['make', 'cmake', 'python3', 'clang', 'python-is-python3',
+           'libsqlite3-dev', 'libcppdb-dev', 'libmarkdown2-dev']
+    state: present
 
 - name: Create tatowiki directories
   file:
@@ -44,11 +54,6 @@
   - "{{tatowiki_basedir}}"
   - "{{tatowiki_basedir}}/www"
   - "{{tatowiki_basedir}}/log"
-
-- name: Temporarily install dev dependency python-is-python3 package
-  apt:
-    name: python-is-python3
-    state: present
 
 - name: Generate makefile
   command: cmake .. chdir=/tmp/tatowiki/app/build
@@ -75,10 +80,8 @@
     src: /tmp/tatowiki/app/resources
     dest: "{{tatowiki_resources_dir | dirname}}"
 
-- name: Uninstall dev dependency python-is-python3 package
-  apt:
-    name: python-is-python3
-    state: absent
+- name: Uninstall build dependencies
+  shell: dpkg --clear-selections && dpkg --set-selections < /tmp/tatowiki/all_selections && apt-get -y dselect-upgrade
 
 - name: Create user tatowiki
   user:

@@ -1,7 +1,8 @@
 ---
-- name: Install dependency cppcms
+
+- name: Install dependencies for cppcms
   apt:
-    name: ['make', 'cmake', 'g++', 'libpcre3-dev', 'zlib1g-dev', 'libicu-dev']
+    name: ['libpcre3', 'zlib1g', 'libicu72']
     state: present
 
 - name: Fetch cppcms source
@@ -10,6 +11,16 @@
 - name: Extract source from the archive
   command: tar -jxvf cppcms-1.0.5.tar.bz2 chdir=/tmp/
   when: install_state is failed or force_install == true
+
+- name: Save packages selection
+  shell: dpkg --get-selections > /tmp/cppcms-1.0.5/all_selections
+  args:
+    creates: /tmp/cppcms-1.0.5/all_selections
+
+- name: Install build dependencies for cppcms
+  apt:
+    name: ['make', 'cmake', 'g++', 'libpcre3-dev', 'zlib1g-dev', 'libicu-dev', 'python-is-python3']
+    state: present
 
 - name: Disable testing
   replace:
@@ -26,8 +37,5 @@
 - name: Install
   command: make install chdir=/tmp/cppcms-1.0.5
 
-- name: Remove temporary files
-  file:
-    path: /tmp/cppcms-1.0.5
-    state: absent
-
+- name: Uninstall build dependencies
+  shell: dpkg --clear-selections && dpkg --set-selections < /tmp/cppcms-1.0.5/all_selections && apt-get -y dselect-upgrade
